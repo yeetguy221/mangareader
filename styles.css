@@ -35,8 +35,9 @@ button{cursor:pointer}
 .muted{color:var(--muted);font-size:12px;margin:0}
 .actions{margin-top:auto;display:flex;gap:8px}
 .list{display:flex;flex-direction:column;gap:8px}
-.update-item{display:flex;align-items:center;gap:10px;background:#101217;border:1px solid #1f2329;padding:10px;border-radius:12px}
+.update-item{position:relative;display:flex;align-items:center;gap:10px;background:#101217;border:1px solid #1f2329;padding:10px;border-radius:12px}
 .update-item img{width:54px;height:76px;border-radius:8px;object-fit:cover;background:#0f1115}
+.update-item .badge{position:absolute;top:8px;right:8px;background:#1e293b;color:#fff;border:1px solid #334155;padding:2px 6px;border-radius:999px;font-size:11px}
 .update-item .u-meta{display:flex;flex-direction:column;gap:4px;flex:1}
 .update-item .u-title{font-size:14px;margin:0}
 .update-item .u-sub{font-size:12px;color:var(--muted)}
@@ -50,15 +51,18 @@ button{cursor:pointer}
 .titlebar{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pages{flex:1;overflow:auto;touch-action:pan-y;position:relative;scroll-behavior:smooth;padding-bottom:calc(10px + var(--safe-bottom));}
 .pages.swipe{scroll-snap-type:x mandatory;display:flex;overflow-x:auto;overflow-y:hidden}
+.pages.scroll{display:block}
+.pages.webtoon{display:block}
 .page{min-width:100%;scroll-snap-align:center;display:flex;justify-content:center;align-items:flex-start}
+.pages.scroll .page{margin:0 0 12px 0}
+.pages.webtoon .page{margin:0 0 6px 0}
+.pages.webtoon img{max-width:100%;height:auto;border-radius:4px}
 .page img{width:100%;height:auto}
 .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
-#mode-toggle{border:1px solid #242932;border-radius:10px;padding:6px 10px}
-/* Tap zones */
+#mode-toggle,#mark-read{border:1px solid #242932;border-radius:10px;padding:6px 10px}
 .tap-zone{position:absolute;top:0;bottom:0;width:30%;z-index:5}
 .tap-zone.left{left:0}
 .tap-zone.right{right:0}
-/* Smooth image reveal */
 .fade{opacity:0;transition:opacity .25s ease}
 .fade.loaded{opacity:1}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}

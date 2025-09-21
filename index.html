@@ -25,6 +25,12 @@
       <h2>Updates</h2>
       <div id="updates" class="list"></div>
     </section>
+
+    <section id="reco-section">
+      <h2>Recommendations</h2>
+      <div id="reco" class="grid"></div>
+    </section>
+
     <form id="search-form" class="sticky-search">
       <input id="search-input" placeholder="Search on MangaDex…" autocomplete="off">
       <button>Search</button>
@@ -44,6 +50,7 @@
       <select id="reading-mode">
         <option value="swipe">Swipe (page-by-page)</option>
         <option value="scroll">Vertical scroll</option>
+        <option value="webtoon">Webtoon vertical</option>
       </select>
     </label>
     <label class="row">
@@ -56,6 +63,10 @@
         <option value="ja">日本語</option>
       </select>
     </label>
+    <label class="row">
+      <span>Include 18+ in recos</span>
+      <input type="checkbox" id="adult-toggle">
+    </label>
     <p class="muted">Data is stored locally on your device.</p>
   </main>
 
@@ -65,9 +76,9 @@
       <button id="reader-back">←</button>
       <div id="reader-title" class="titlebar"></div>
       <select id="chapter-select"></select>
+      <button id="mark-read" title="Mark current chapter as read">✓</button>
       <button id="mode-toggle" title="Toggle swipe/scroll">⇕</button>
     </div>
-    <!-- Tap zones for paging -->
     <div class="tap-zone left" id="tap-left" aria-hidden="true"></div>
     <div class="tap-zone right" id="tap-right" aria-hidden="true"></div>
     <div id="reader-pages" class="pages swipe"></div>

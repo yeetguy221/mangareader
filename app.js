@@ -5,14 +5,17 @@ const tpl = id => el(id).content.firstElementChild.cloneNode(true);
 const $ = {
   results: el('#results'),
   updates: el('#updates'),
+  reco: el('#reco'),
   library: el('#library'),
   pages: el('#reader-pages'),
   chapterSelect: el('#chapter-select'),
   reader: el('#reader'),
   readerTitle: el('#reader-title'),
   modeToggle: el('#mode-toggle'),
+  markRead: el('#mark-read'),
   modeSelect: el('#reading-mode'),
   langSelect: el('#language-select'),
+  adultToggle: el('#adult-toggle'),
   searchForm: el('#search-form'),
   searchInput: el('#search-input'),
   tapLeft: el('#tap-left'),
@@ -22,9 +25,15 @@ const $ = {
 const state = {
   library: JSON.parse(localStorage.getItem('library') || '[]'),
   mode: localStorage.getItem('mode') || 'swipe',
-  lang: localStorage.getItem('lang') || 'en'
+  lang: localStorage.getItem('lang') || 'en',
+  adult: JSON.parse(localStorage.getItem('adult') || 'false')
 };
-function save(){ localStorage.setItem('library', JSON.stringify(state.library)); localStorage.setItem('mode', state.mode); localStorage.setItem('lang', state.lang); }
+function save(){
+  localStorage.setItem('library', JSON.stringify(state.library));
+  localStorage.setItem('mode', state.mode);
+  localStorage.setItem('lang', state.lang);
+  localStorage.setItem('adult', JSON.stringify(state.adult));
+}
 
 ['home','library','settings'].forEach(name=>{
   el(`#tab-${name}`).addEventListener('click', ()=>{
@@ -33,43 +42,57 @@ function save(){ localStorage.setItem('library', JSON.stringify(state.library));
     el(`#tab-${name}`).classList.add('active');
     el(`#view-${name}`).classList.add('active');
     if (name==='library') renderLibrary();
-    if (name==='home') renderUpdates();
+    if (name==='home') { renderUpdates(); renderRecos(); }
   });
 });
 
 $.modeSelect.value = state.mode;
 $.langSelect.value = state.lang;
+$.adultToggle.checked = state.adult;
 $.modeSelect.addEventListener('change',(e)=>{ state.mode = e.target.value; save(); applyReaderMode(); });
-$.langSelect.addEventListener('change',(e)=>{ state.lang = e.target.value; save(); if(!$.reader.classList.contains('hidden')) reopenCurrentChapter(); });
+$.langSelect.addEventListener('change',(e)=>{ state.lang = e.target.value; save(); if(!$.reader.classList.contains('hidden')) reopenCurrentChapter(); renderUpdates(); renderRecos(); });
+$.adultToggle.addEventListener('change',(e)=>{ state.adult = e.target.checked; save(); renderRecos(); });
 
+// Search
 $.searchForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const q = $.searchInput.value.trim();
   if (!q) return;
+
   const url = `${API}/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=author&includes[]=cover_art`;
-  const res = await fetch(url);
-  const json = await res.json();
-  const items = json.data || [];
-  $.results.innerHTML = '';
-  items.forEach(m=>{
-    const card = tpl('#card-tpl');
-    const title = m.attributes.title.en || m.attributes.title[Object.keys(m.attributes.title)[0]] || 'Untitled';
-    const authorRel = (m.relationships||[]).find(r=>r.type==='author');
-    const coverRel = (m.relationships||[]).find(r=>r.type==='cover_art');
-    const fileName = coverRel?.attributes?.fileName;
-    const coverUrl = fileName ? `https://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg` : '';
-    card.querySelector('.title').textContent = title;
-    card.querySelector('.author').textContent = authorRel?.attributes?.name || '—';
-    const img = card.querySelector('.cover'); if (coverUrl){ img.src = coverUrl; img.alt = title; img.onload=()=>img.classList.add('loaded'); }
-    card.querySelector('.open').addEventListener('click', ()=> openManga(m.id, title, coverUrl));
-    card.querySelector('.follow').addEventListener('click', ()=>{
-      if (!state.library.find(x=>x.id===m.id)) state.library.push({id:m.id, title, coverUrl, lastRead:null});
-      save(); renderLibrary(); renderUpdates();
-      card.querySelector('.follow').textContent = 'Saved ✓';
-    });
-    $.results.appendChild(card);
-  });
+  try{
+    const res = await fetch(url, { headers: {'accept':'application/json'} });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const items = json.data || [];
+    $.results.innerHTML = '';
+    if (!items.length){ $.results.innerHTML='<p class="muted">No results.</p>'; return; }
+    items.forEach(drawCard);
+  }catch(err){
+    alert('Search failed: ' + err.message);
+    console.error(err);
+  }
 });
+
+function drawCard(m){
+  const card = tpl('#card-tpl');
+  const title = m.attributes.title.en || m.attributes.title[Object.keys(m.attributes.title)[0]] || 'Untitled';
+  const authorRel = (m.relationships||[]).find(r=>r.type==='author');
+  const coverRel  = (m.relationships||[]).find(r=>r.type==='cover_art');
+  const fileName  = coverRel?.attributes?.fileName;
+  const coverUrl  = fileName ? `https://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg` : '';
+  card.querySelector('.title').textContent = title;
+  card.querySelector('.author').textContent = authorRel?.attributes?.name || '—';
+  const img = card.querySelector('.cover'); if (coverUrl){ img.src = coverUrl; img.alt = title; img.onload=()=>img.classList.add('loaded'); }
+
+  card.querySelector('.open').addEventListener('click', ()=> openManga(m.id, title, coverUrl));
+  card.querySelector('.follow').addEventListener('click', ()=>{
+    if (!state.library.find(x=>x.id===m.id)) state.library.push({id:m.id, title, coverUrl, lastRead:null});
+    save(); renderLibrary(); renderUpdates(); renderRecos();
+    card.querySelector('.follow').textContent = 'Saved ✓';
+  });
+  return card;
+}
 
 function renderLibrary(){
   $.library.innerHTML = '';
@@ -84,7 +107,7 @@ function renderLibrary(){
     card.querySelector('.follow').textContent = 'Remove';
     card.querySelector('.follow').addEventListener('click', ()=>{
       state.library = state.library.filter(x=>x.id!==item.id);
-      save(); renderLibrary(); renderUpdates();
+      save(); renderLibrary(); renderUpdates(); renderRecos();
     });
     $.library.appendChild(card);
   });
@@ -98,22 +121,53 @@ async function renderUpdates(){
       const feed = await fetch(`${API}/manga/${item.id}/feed?limit=1&translatedLanguage[]=${encodeURIComponent(state.lang)}&order[readableAt]=desc&includes[]=scanlation_group`).then(r=>r.json());
       const c = feed.data?.[0];
       if (!c) continue;
-      const num = c.attributes.chapter || '?';
+      const latestNum = parseFloat(c.attributes.chapter) || 0;
+      const lastNum   = parseFloat(item.lastRead?.chapter) || 0;
+      const isNew = !item.lastRead || latestNum > lastNum;
+
       const grp = (c.relationships||[]).find(r=>r.type==='scanlation_group')?.attributes?.name || '';
       const row = document.createElement('div'); row.className='update-item';
       const img = document.createElement('img'); if (item.coverUrl){ img.src = item.coverUrl; img.className='fade'; img.onload=()=>img.classList.add('loaded'); }
       const meta = document.createElement('div'); meta.className='u-meta';
       const t = document.createElement('div'); t.className='u-title'; t.textContent = item.title;
-      const s = document.createElement('div'); s.className='u-sub'; s.textContent = `Latest: Ch ${num}${grp?(' • '+grp):''}`;
-      const btn = document.createElement('button'); btn.textContent='Open'; btn.addEventListener('click', ()=> openManga(item.id, item.title, item.coverUrl, c.id));
+      const s = document.createElement('div'); s.className='u-sub'; s.textContent = `Latest: Ch ${c.attributes.chapter || '?'}${grp?(' • '+grp):''}`;
+      const btn = document.createElement('button'); btn.textContent = isNew ? 'Read new' : 'Open'; btn.addEventListener('click', ()=> openManga(item.id, item.title, item.coverUrl, c.id));
       meta.appendChild(t); meta.appendChild(s);
+      if (isNew){ const badge=document.createElement('div'); badge.className='badge'; badge.textContent='NEW'; row.appendChild(badge); }
       row.appendChild(img); row.appendChild(meta); row.appendChild(btn);
       box.appendChild(row);
     }catch(e){}
   }
 }
 
-const reader = { mangaId:null, chapterList:[], current:null };
+async function renderRecos(){
+  const box = $.reco; box.innerHTML='';
+  const tagCounts = new Map();
+  for (const item of state.library){
+    try{
+      const m = await fetch(`${API}/manga/${item.id}?includes[]=tags`).then(r=>r.json());
+      const tags = m.data?.attributes?.tags || [];
+      tags.forEach(t=>{ const id=t.id; tagCounts.set(id,(tagCounts.get(id)||0)+1); });
+    }catch(e){}
+  }
+  let url = `${API}/manga?limit=12&includes[]=cover_art&order[followedCount]=desc`;
+  const ratings = state.adult ? ['safe','suggestive','erotica','pornographic'] : ['safe','suggestive'];
+  ratings.forEach(r => url += `&contentRating[]=${encodeURIComponent(r)}`);
+  const topTags = Array.from(tagCounts.entries()).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([id])=>id);
+  topTags.forEach(id => url += `&includedTags[]=${id}`);
+  try{
+    const res = await fetch(url);
+    const json = await res.json();
+    const items = (json.data || []).filter(m => !state.library.some(l => l.id === m.id));
+    if (!items.length){ box.innerHTML = '<p class="muted">No recommendations yet.</p>'; return; }
+    items.forEach(m=> box.appendChild(drawCard(m)));
+  }catch(e){
+    box.innerHTML = '<p class="muted">Recommendations unavailable.</p>';
+  }
+}
+
+// Reader
+const reader = { mangaId:null, chapterList:[], current:null, pageUrls:[] };
 let savePageDebounce=null;
 
 async function openManga(mangaId, title, coverUrl, preferChapterId=null, preferPage=1){
@@ -151,12 +205,13 @@ async function openChapter(chapter, title, gotoPage=1){
   const base = ah.baseUrl;
   const hash = chapter.attributes.hash;
   const data = chapter.attributes.data;
+  reader.pageUrls = data.map(file => `${base}/data/${hash}/${file}`);
 
   $.pages.innerHTML='';
-  data.forEach((file, idx)=>{
+  reader.pageUrls.forEach((src, idx)=>{
     const page = document.createElement('div'); page.className='page';
-    const img = document.createElement('img'); img.loading='eager'; img.decoding='async';
-    img.src = `${base}/data/${hash}/${file}`; img.alt = `${title} - p${idx+1}`;
+    const img = document.createElement('img'); img.loading='lazy'; img.decoding='async';
+    img.src = src; img.alt = `${title} - p${idx+1}`;
     img.className='fade'; img.onload=()=>img.classList.add('loaded');
     page.appendChild(img); $.pages.appendChild(page);
   });
@@ -172,10 +227,10 @@ async function openChapter(chapter, title, gotoPage=1){
 }
 
 function applyReaderMode(){
-  const swipe = state.mode === 'swipe';
-  $.pages.classList.toggle('swipe', swipe);
-  $.pages.style.overflowY = swipe ? 'hidden' : 'auto';
-  $.pages.style.overflowX = swipe ? 'auto' : 'hidden';
+  $.pages.classList.remove('swipe','scroll','webtoon');
+  if (state.mode === 'swipe'){ $.pages.classList.add('swipe'); $.pages.style.overflowY='hidden'; $.pages.style.overflowX='auto'; }
+  else if (state.mode === 'webtoon'){ $.pages.classList.add('webtoon'); $.pages.style.overflowY='auto'; $.pages.style.overflowX='hidden'; }
+  else { $.pages.classList.add('scroll'); $.pages.style.overflowY='auto'; $.pages.style.overflowX='hidden'; }
 }
 
 function setupTapZones(){
@@ -187,7 +242,6 @@ function pageIndex(){
     const w = $.pages.clientWidth || 1;
     return Math.round($.pages.scrollLeft / w) + 1;
   } else {
-    // Approx: find the page whose top is closest to the viewport top (below reader-topbar)
     const topBarBottom = document.querySelector('.reader-topbar').getBoundingClientRect().bottom;
     let idx = 0, bestDist = 1e9;
     Array.from($.pages.children).forEach((p,i)=>{
@@ -207,6 +261,7 @@ function jumpToPage(n){
     if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
   }
   saveCurrentPage(n);
+  preloadAhead(n+1); // prefetch next chunk
 }
 function pageNext(){ jumpToPage(pageIndex()+1); }
 function pagePrev(){ jumpToPage(pageIndex()-1); }
@@ -219,6 +274,7 @@ function trackCurrentPageDebounced(){
     raf = requestAnimationFrame(()=>{
       const n = pageIndex();
       saveCurrentPage(n);
+      preloadAhead(n+1);
     });
   };
   $.pages.addEventListener('scroll', savePageDebounce, {passive:true});
@@ -233,13 +289,40 @@ function saveCurrentPage(n){
   lib.lastRead.chapter = reader.current?.attributes?.chapter || '';
   save();
 }
+function preloadAhead(startIndex){
+  const end = Math.min(reader.pageUrls.length, startIndex + 10);
+  for (let i=startIndex-1; i<end; i++){
+    if (i<0) continue;
+    const src = reader.pageUrls[i];
+    const img = new Image();
+    img.decoding = 'async';
+    img.loading = 'eager';
+    img.src = src;
+  }
+}
+
 function reopenCurrentChapter(){
   if (!reader.current || $.reader.classList.contains('hidden')) return;
   openChapter(reader.current, $.readerTitle.textContent, 1);
 }
 
+// Mark current chapter as read
+$.markRead.addEventListener('click', ()=>{
+  const lib = state.library.find(x=>x.id===reader.mangaId);
+  if (!lib || !reader.current) return;
+  lib.lastRead = lib.lastRead || {};
+  lib.lastRead.chapterId = reader.current.id;
+  lib.lastRead.chapter = reader.current.attributes.chapter || '';
+  lib.lastRead.page = pagesCount(); // mark last page
+  save();
+  alert('Marked as read.');
+});
+
 $.modeToggle.addEventListener('click', ()=>{
-  state.mode = (state.mode==='swipe') ? 'scroll' : 'swipe';
+  // cycle swipe -> scroll -> webtoon -> swipe
+  const order = ['swipe','scroll','webtoon'];
+  const idx = order.indexOf(state.mode);
+  state.mode = order[(idx+1) % order.length];
   save(); applyReaderMode();
 });
 el('#reader-back').addEventListener('click', ()=>{
@@ -248,3 +331,4 @@ el('#reader-back').addEventListener('click', ()=>{
 
 renderLibrary();
 renderUpdates();
+renderRecos();
