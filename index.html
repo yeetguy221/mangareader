@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="progress"><div class="bar"></div></div>
+
   <header>
     <h1>Manga</h1>
     <nav>
@@ -32,7 +34,7 @@
     </section>
 
     <form id="search-form" class="sticky-search">
-      <input id="search-input" placeholder="Search on MangaDex…" autocomplete="off">
+      <input id="search-input" placeholder="Search on MangaDex (EN only)…" autocomplete="off">
       <button>Search</button>
     </form>
     <div id="results" class="grid"></div>
@@ -54,19 +56,20 @@
       </select>
     </label>
     <label class="row">
-      <span>Language</span>
-      <select id="language-select">
-        <option value="en">English</option>
-        <option value="fr">Français</option>
-        <option value="es">Español</option>
-        <option value="pt-br">Português (BR)</option>
-        <option value="ja">日本語</option>
-      </select>
-    </label>
-    <label class="row">
       <span>Include 18+ in recos</span>
       <input type="checkbox" id="adult-toggle">
     </label>
+    <div class="group">
+      <h3>Network</h3>
+      <label class="row">
+        <span>Custom Proxy</span>
+        <input id="proxy-input" placeholder="e.g. https://your-worker.workers.dev/?url=" />
+      </label>
+      <label class="row">
+        <span>Force proxy (avoid direct)</span>
+        <input type="checkbox" id="force-proxy">
+      </label>
+    </div>
     <p class="muted">Data is stored locally on your device.</p>
   </main>
 
@@ -77,7 +80,7 @@
       <div id="reader-title" class="titlebar"></div>
       <select id="chapter-select"></select>
       <button id="mark-read" title="Mark current chapter as read">✓</button>
-      <button id="mode-toggle" title="Toggle reading mode">⇕</button>
+      <button id="mode-toggle" title="Toggle swipe/scroll/webtoon">⇕</button>
     </div>
     <div class="tap-zone left" id="tap-left" aria-hidden="true"></div>
     <div class="tap-zone right" id="tap-right" aria-hidden="true"></div>

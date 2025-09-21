@@ -1,5 +1,5 @@
 // sw.js — Project Pages safe
-const CACHE = 'manga-pwa-v7'; // bump to force update
+const CACHE = 'manga-pwa-v10';
 const ASSETS = ['./index.html','./styles.css','./app.js','./manifest.webmanifest'];
 
 self.addEventListener('install', e => {
@@ -16,5 +16,4 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
     return;
   }
-  // don't intercept cross-origin (MangaDex via proxy)
 });
