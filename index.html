@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Manga PWA</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Manga</h1>
+    <nav>
+      <button id="tab-home" class="tab active">Home</button>
+      <button id="tab-library" class="tab">Library</button>
+      <button id="tab-settings" class="tab">Settings</button>
+    </nav>
+  </header>
+
+  <main id="view-home" class="view active">
+    <form id="search-form">
+      <input id="search-input" placeholder="Search on MangaDex…" autocomplete="off">
+      <button>Search</button>
+    </form>
+    <div id="results" class="grid"></div>
+  </main>
+
+  <main id="view-library" class="view">
+    <h2>Your Library</h2>
+    <div id="library" class="grid"></div>
+  </main>
+
+  <main id="view-settings" class="view">
+    <h2>Settings</h2>
+    <label class="row">
+      <span>Reading mode</span>
+      <select id="reading-mode">
+        <option value="swipe">Swipe (page-by-page)</option>
+        <option value="scroll">Vertical scroll</option>
+      </select>
+    </label>
+    <p class="muted">Data is stored locally on your device.</p>
+  </main>
+
+  <!-- Reader modal -->
+  <div id="reader" class="reader hidden">
+    <div class="reader-topbar">
+      <button id="reader-back">←</button>
+      <div id="reader-title"></div>
+      <select id="chapter-select"></select>
+      <button id="mode-toggle" title="Toggle swipe/scroll">⇕</button>
+    </div>
+    <div id="reader-pages" class="pages swipe"></div>
+  </div>
+
+  <template id="card-tpl">
+    <article class="card">
+      <img class="cover" alt="">
+      <div class="meta">
+        <h3 class="title"></h3>
+        <p class="author muted"></p>
+        <div class="actions">
+          <button class="open">Open</button>
+          <button class="follow">Follow</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js" type="module"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+  </script>
+</body>
+</html>
