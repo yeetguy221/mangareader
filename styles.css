@@ -1,29 +1,64 @@
-:root { --bg:#0b0c10; --fg:#f2f5f7; --muted:#9aa3ab; --card:#14161a; --acc:#6bc2ff; }
-*{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto}
-header{position:sticky;top:0;backdrop-filter:saturate(1.2) blur(8px);background:#0b0c10cc;border-bottom:1px solid #1f2329;padding:8px 12px;display:flex;align-items:center;gap:12px}
+:root {
+  --bg:#0b0c10; --fg:#f2f5f7; --muted:#9aa3ab; --card:#14161a; --acc:#6bc2ff;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto}
+header{
+  position:sticky;top:0;
+  padding:calc(8px + var(--safe-top)) 12px 8px 12px;
+  backdrop-filter:saturate(1.2) blur(14px);
+  background:#0b0c10cc;border-bottom:1px solid #1f2329;
+  display:flex;align-items:center;gap:12px;z-index:5
+}
 h1{font-size:18px;margin:0}
 nav{margin-left:auto;display:flex;gap:6px}
-.tab{background:#181b21;color:var(--fg);border:1px solid #242932;border-radius:8px;padding:6px 10px}
+.tab{
+  background:#181b21;color:var(--fg);border:1px solid #242932;border-radius:12px;padding:8px 12px;
+  transition:border-color .2s ease, transform .12s ease
+}
+.tab:active{transform:scale(.98)}
 .tab.active{border-color:var(--acc)}
-.view{display:none;padding:12px}
+.view{display:none;padding:12px;animation:fadeIn .18s ease}
 .view.active{display:block}
 form{display:flex;gap:8px;margin:8px 0}
-input{flex:1;padding:10px;border-radius:10px;border:1px solid #242932;background:#111318;color:var(--fg)}
+.sticky-search{position:sticky;top:calc(54px + var(--safe-top));background:linear-gradient(#0b0c10cc,#0b0c1000);padding-top:8px;z-index:4}
+input{flex:1;padding:12px;border-radius:12px;border:1px solid #242932;background:#111318;color:var(--fg)}
 button{cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.card{display:flex;gap:10px;padding:8px;border:1px solid #1f2329;border-radius:12px;background:var(--card);transition:transform .2s ease}
-.card:active{transform:scale(.98)}
+.card{display:flex;gap:10px;padding:10px;border:1px solid #1f2329;border-radius:14px;background:var(--card);transition:transform .18s ease, box-shadow .18s ease}
+.card:active{transform:scale(.985)}
 .cover{width:86px;height:120px;object-fit:cover;border-radius:10px;background:#0f1115}
 .meta{flex:1;display:flex;flex-direction:column;gap:6px}
 .title{font-size:14px;margin:0}
 .muted{color:var(--muted);font-size:12px;margin:0}
 .actions{margin-top:auto;display:flex;gap:8px}
+.list{display:flex;flex-direction:column;gap:8px}
+.update-item{display:flex;align-items:center;gap:10px;background:#101217;border:1px solid #1f2329;padding:10px;border-radius:12px}
+.update-item img{width:54px;height:76px;border-radius:8px;object-fit:cover;background:#0f1115}
+.update-item .u-meta{display:flex;flex-direction:column;gap:4px;flex:1}
+.update-item .u-title{font-size:14px;margin:0}
+.update-item .u-sub{font-size:12px;color:var(--muted)}
 .reader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column}
 .hidden{display:none}
-.reader-topbar{display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid #1f2329;background:#0b0c10ee}
-.pages{flex:1;overflow:auto;touch-action:pan-y}
+.reader-topbar{
+  display:flex;align-items:center;gap:8px;
+  padding:calc(6px + var(--safe-top)) 10px 6px 10px;
+  border-bottom:1px solid #1f2329;background:#0b0c10ee;z-index:6
+}
+.titlebar{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pages{flex:1;overflow:auto;touch-action:pan-y;position:relative;scroll-behavior:smooth;padding-bottom:calc(10px + var(--safe-bottom));}
 .pages.swipe{scroll-snap-type:x mandatory;display:flex;overflow-x:auto;overflow-y:hidden}
 .page{min-width:100%;scroll-snap-align:center;display:flex;justify-content:center;align-items:flex-start}
 .page img{width:100%;height:auto}
 .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
-#mode-toggle{border:1px solid #242932;border-radius:8px;padding:4px 8px}
+#mode-toggle{border:1px solid #242932;border-radius:10px;padding:6px 10px}
+/* Tap zones */
+.tap-zone{position:absolute;top:0;bottom:0;width:30%;z-index:5}
+.tap-zone.left{left:0}
+.tap-zone.right{right:0}
+/* Smooth image reveal */
+.fade{opacity:0;transition:opacity .25s ease}
+.fade.loaded{opacity:1}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}

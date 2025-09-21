@@ -1,5 +1,5 @@
 // Cache app shell for offline
-const CACHE = 'manga-pwa-v1';
+const CACHE = 'manga-pwa-v2';
 const ASSETS = ['/', './index.html','./styles.css','./app.js','./manifest.webmanifest'];
 
 self.addEventListener('install', e => {
@@ -8,7 +8,6 @@ self.addEventListener('install', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // Cache-first for same-origin, network-first for others
   if (url.origin === location.origin) {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
   } else {
